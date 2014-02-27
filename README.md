@@ -46,27 +46,27 @@ from graph.requestgraphelements import RequestVertexType, RequestEdgeType, Reque
 #open the graph
 g=HyperDexGraph('127.0.0.1', 1990)
 
-#create vertex type User
+#create vertex type User with structured attributes
 user_type=RequestVertexType('User', ('string', 'first'), ('string', 'last'), ('int', 'age'))
 user=g.create_vertex_type(user_type)
-#create vertex type Movie
+#create vertex type Movie with structured attributes
 movie_type=RequestVertexType('Movie', ('string', 'title'), ('int', 'length'), ('int', 'released'), ('string', 'type'))
 movie=g.create_vertex_type(movie_type)
-#create edge type rates
+#create edge type rates with a structured attribute
 rates_type=RequestEdgeType('rates', ('int', 'stars'))
 rates=g.create_edge_type(rates_type)
-#insert some users
+#insert some users, fill in the data
 u1=g.insert_vertex(RequestVertex(user, {'first':'Scrooge', 'last':'McDuck', 'age':67}))
 u2=g.insert_vertex(RequestVertex(user, {'first':'Donald', 'last':'Duck', 'age':77}))
 u3=g.insert_vertex(RequestVertex(user, {'first':'Mikey', 'last':'Mouse', 'age':80}))
 u4=g.insert_vertex(RequestVertex(user, {'first':'Gus', 'last':'Goose', 'age':76}))
 u5=g.insert_vertex(RequestVertex(user, {'first':'Black', 'last':'Pete', 'age':83}))
-#insert some movies
+#insert some movies, fill in the required data
 m1=g.insert_vertex(RequestVertex(movie, {'title':'DuckTails', 'length':22, 'released':1987,'type':'series'}))
 m2=g.insert_vertex(RequestVertex(movie, {'title':'The Wise Little Hen', 'length':7, 'released':1934,'type':'film'}))
 m3=g.insert_vertex(RequestVertex(movie, {'title':'Mickey\'s Christmas Carol', 'length':25, 'released':1983,'type':'film'}))
 m4=g.insert_vertex(RequestVertex(movie, {'title':'Darkwing Duck', 'length':22, 'released':1991,'type':'series'}))
-#attach some movie ratings
+#attach some movie ratings with the number of stars given
 u1.add_edge(m1, rates, {'stars':5})
 u2.add_edge(m1, rates, {'stars':3})
 u2.add_edge(m2, rates, {'stars':1})
