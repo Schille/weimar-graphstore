@@ -33,7 +33,10 @@ The following features are currently planned:
 
 # How to use
 The following code is taken from the unittest tests/testhyperdexgraph.py. It shows the usage of the
-HyperDexGraph API for a small movie database.
+HyperDexGraph API for a small movie database. Firstly, the following code requires a running 
+[HyperDex](https://github.com/rescrv/HyperDex/). Please refer to their documentation on
+http://hyperdex.org/ how to set up the database. Once a HyperDex instance is running, to following
+code can be executed:
 
 ```
 
