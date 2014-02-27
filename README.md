@@ -16,7 +16,7 @@ nodes. In terms of storage this is very efficient, since Weimar needs to retriev
 traverse the graph accordingly.
 The chosen graph model is very well supported by the concepts of HyperDex. Each VertexType/EdgeType object maps to
 its own Hyperspace (in HyperDex), hence nodes and links are distributed throughout multiple Hyperspaces.
-There is a paper coming soon, describing graph model in more detail. 
+There is a paper coming soon, describing the graph model in more detail. 
 
 # Features
 The following features are already implemented:
