@@ -22,7 +22,7 @@ There is a paper coming soon, describing the graph model in more detail.
 The following features are already implemented:
 * Type system: create VertexType and EdgeType objects and a corresponding container with a type definition (similar to tables in RDBMS)
 * Storing vertices/edges: insert vertices and edges, i.e. create a graph structure by connecting vertices via edges
-* Storing properties: structured and unstructured attributes can associated with vertices and edges
+* Storing properties: structured and unstructured attributes can be associated with vertices and edges
 * Search: search vertices based on attribute values
 
 The following features are currently planned:
