@@ -4,7 +4,7 @@ weimar-graphstore
 'Weimar' denotes a graph abstraction layer which leverages the distributed key-value store [HyperDex](https://github.com/rescrv/HyperDex/)
 as underlying storage back-end. Main objective is to create an database for massive parallel access to a
 rapid changing graph. Background of this work is a student research project at the 'University of Cooperative Education' (DHBW Mannheim).
-**This is still prototypic work and subject to development**
+**This is still prototypic work and subject to development.**
 
 # The Graph Model
 The supported graph is an advanced property graph model with nodes (vertices) and links (edges) connecting these
