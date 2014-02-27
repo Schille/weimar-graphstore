@@ -22,7 +22,7 @@ class HyperDexGraph(object):
     '''
     This is the basic HyperDexGraph API, which provides for interacting with the underlying
     database. The API is created through HyperDexGraph(ADRESS, PORT) in order to
-    connect to the HyperDex coordinator process. The following features are currently provided:
+    connect to the HyperDex coordinator process. The following features are currently available:
     create VertexType - creates a  new type of vertices
     create EdgeType - creates a new type of edges (mandatory)
     get VertexType - returns a type description
