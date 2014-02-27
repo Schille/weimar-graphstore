@@ -1,4 +1,11 @@
-*.py[cod]
+#Python byte code
+*.pyc
+
+#PyDev Debugger
+pydevsrc
+
+#until scripts
+copytomachine.sh
 
 # C extensions
 *.so
