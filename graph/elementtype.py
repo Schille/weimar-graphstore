@@ -40,6 +40,10 @@ class ElementType(object):
             The type name (str).
         '''
         return self._typename
+       
+    #TODO count available elements
+    #TDOD provide search method on these elements
+    #TODO remove all elements plus type
     
     
 class VertexType(ElementType, object):
