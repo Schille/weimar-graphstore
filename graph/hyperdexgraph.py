@@ -82,7 +82,7 @@ class HyperDexGraph(object):
             logging.info('Retrieving EdgeType object for ' + edge_type)
             return EdgeType(self._storage.typeadmin.get_type_description, edge_type)
         else:
-            logging.debug('VertexType object not found: ' + edge_type)
+            logging.debug('EdgeType object not found: ' + edge_type)
             raise TypeNotFoundException(edge_type)
     
     def create_vertex_type(self, requested_vertex_type):
