@@ -91,8 +91,6 @@ class GraphElement(object):
             else:
                 result.add(prop)
         return result
-    
-    #TODO count elements
         
 
 class Vertex(GraphElement, object):
