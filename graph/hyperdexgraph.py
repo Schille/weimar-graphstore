@@ -15,7 +15,6 @@ from graph.requestgraphelements import RequestVertexType, RequestEdgeType,\
     RequestVertex
 from serialization import serializer
 import logging
-import graphstore
 
 
 class HyperDexGraph(object):
@@ -32,18 +31,20 @@ class HyperDexGraph(object):
     search - performs a lookup for vertices, edges, graph pattern matching
     '''
 
-    def __init__(self, address, port):
+    def __init__(self, address, port, graph):
         '''
         Creates a new HyperDexGraph API in order to work with HyperDex as a graph store.
         
         Args:
             address: The IP address of the HyperDex coordinator process (str).
             port: The port number of the HyperDex coordinator process (int).
+            graph: The identifier of the graph to be opened (str).
             
         Returns:
             Returns a newly created HyperDexGraph handle for the database.
         '''
-        self._storage = HyperDex(address, port)
+        self._storage = HyperDex(address, port, graph)
+        self._graph_name = graph
         logging.basicConfig(filename='hyperdexgraph.log', filemode='w', level=logging.DEBUG)
     
     def get_vertex_type(self, vertex_type):
@@ -60,7 +61,7 @@ class HyperDexGraph(object):
         '''
         if(self._storage.vertex_type_exists(vertex_type)):
             logging.info('Retrieving VertexType object for ' + vertex_type)
-            return VertexType(self._storage.typeadmin.get_type_description, vertex_type)
+            return VertexType(self._storage, vertex_type)
         else:
             logging.debug('VertexType object not found: ' + vertex_type)
             raise TypeNotFoundException(vertex_type)
@@ -80,7 +81,7 @@ class HyperDexGraph(object):
         '''
         if(self._storage.edge_type_exists(edge_type)):
             logging.info('Retrieving EdgeType object for ' + edge_type)
-            return EdgeType(self._storage.typeadmin.get_type_description, edge_type)
+            return EdgeType(self._storage, edge_type)
         else:
             logging.debug('EdgeType object not found: ' + edge_type)
             raise TypeNotFoundException(edge_type)
@@ -98,10 +99,10 @@ class HyperDexGraph(object):
             A VertexType object containing the type definition and a handle on the group
             of vertices.
         '''
-        logging.info('Creating VertexType object for ' + requested_vertex_type.get_element_type())
+        logging.info('Creating VertexType object for {} in {} '.format(requested_vertex_type.get_element_type(), self._graph_name))
         if isinstance(requested_vertex_type, RequestVertexType):
             self._storage.add_vertex_type(requested_vertex_type.get_element_type(), requested_vertex_type.get_structured_attr())
-            return VertexType(self._storage.typeadmin.get_type_description, requested_vertex_type.get_element_type())
+            return VertexType(self._storage, requested_vertex_type.get_element_type())
         else:
             logging.debug('Creating VertexType was: Illegal argument exception')
             raise TypeError('Illegal argument exception - must be instance of RequestVertexType')
@@ -120,10 +121,10 @@ class HyperDexGraph(object):
             An EdgeType object containing the type definition and a handle on the group
             of edges.
         '''
-        logging.info('Creating VertexType object for ' + requested_edge_type.get_element_type())
+        logging.info('Creating EdgeType object for {} in {} '.format(requested_edge_type.get_element_type(), self._graph_name))
         if isinstance(requested_edge_type, RequestEdgeType):
             self._storage.add_edge_type(requested_edge_type.get_element_type(), requested_edge_type.get_structured_attr())
-            return EdgeType(self._storage.typeadmin.get_type_description, requested_edge_type.get_element_type())
+            return EdgeType(self._storage, requested_edge_type.get_element_type())
         else:
             logging.debug('Creating EdgeType was: Illegal argument exception')
             raise TypeError('Illegal argument exception - must be instance of RequestEdgeType')
@@ -143,7 +144,7 @@ class HyperDexGraph(object):
             used to modify or delete the vertex from the graph. 
         '''
         if isinstance(requested_vertex, RequestVertex):
-            logging.info('Inserting a vertex was requested')
+            logging.info('Inserting a vertex was requested into ' + self._graph_name)
             uid = self._storage.add_vertex(requested_vertex.get_vertex_type(), requested_vertex.get_structured_attr(),
                                       serializer.serialize(requested_vertex.get_unstructured_attr()))
             return Vertex(uid, requested_vertex.get_vertex_type(), self._storage)
@@ -151,7 +152,7 @@ class HyperDexGraph(object):
             logging.debug('Inserting vertex was: Illegal argument exception')
             raise TypeError('Illegal argument exception - must be instance of RequestVertex')
     
-    def get_vertex(self, uid, vertex_type=graphstore.storage.GENERIC_VERTEX):
+    def get_vertex(self, uid, vertex_type):
         #TODO perform a lookup in all spaces, in case there is no vertex_type specified
         '''
         Retrieves a vertex from the graph.

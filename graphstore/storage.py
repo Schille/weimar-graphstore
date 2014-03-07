@@ -16,7 +16,6 @@ from graphexception import ElementNotFoundException,TypeNotFoundException
 import os
 import logging
 
-GENERIC_VERTEX = 'generic_vertex'
 
 
 class HyperDexStore():
@@ -26,7 +25,7 @@ class HyperDexStore():
     handles the underlying connection to the database.
     '''
 
-    def __init__(self, address, port):
+    def __init__(self, address, port, graph_name):
         '''
         Constructor.
         
@@ -39,25 +38,28 @@ class HyperDexStore():
         '''
         self._address = address
         self._port = port
+        self._graph_name = graph_name
         self.hyperdex_client = Client(address, port)#HyperDex python binding (Client)
         self.hyperdex_admin = Admin(address, port)#HyperDex python binding (Admin)
-        self.sysadmin = SysAdmin(address, port, self.hyperdex_client, self.hyperdex_admin)
-        self.typeadmin = TypeAdmin(address, port,self.hyperdex_client, self.hyperdex_admin)
+        self.sysadmin = SysAdmin(address, port, graph_name,  self.hyperdex_client, self.hyperdex_admin)
+        self.typeadmin = TypeAdmin(address, port, graph_name, self.hyperdex_client, self.hyperdex_admin)
         #validate the underlying database for the particular components, i.e.
         #checking for the system/description space
         self.sysadmin.validate_database()
         self.typeadmin.validate_database()
+        
+        self._generic_vertex = graph_name + '_generic_vertex'
         self.validate_database()
         
     def validate_database(self):
         try:
-            self.hyperdex_client.get(GENERIC_VERTEX, 1)
+            self.hyperdex_client.get(self._generic_vertex, 1)
             logging.info('Generic vertices available')
         except HyperClientException, e:
             if e.symbol() == 'HYPERDEX_CLIENT_UNKNOWNSPACE':
                 logging.info('Creating space generic_vertex')
                 self.hyperdex_admin.add_space('''
-                space generic_vertex
+                space '''+ self._generic_vertex + '''
                 key int id
                 attributes 
                    map(int, string) incoming_edges,
@@ -149,7 +151,7 @@ class HyperDexStore():
             if struct_attr is None:
                 #this vertex has no specified type and is stored as generic vertex
                 #besides, this vertex is empty, hence there is no processing necessary
-                self.hyperdex_client.put(GENERIC_VERTEX, uid, { 'value' : str(unstrc_att),
+                self.hyperdex_client.put(self._generic_vertex, uid, { 'value' : str(unstrc_att),
                                                          'incoming_edges' : {}, 'outgoing_edges' : {} })
             else:
                 #the vertex already got some payload to store
@@ -157,7 +159,7 @@ class HyperDexStore():
                 #there are no edges on newly created vertices
                 struct_attr['incoming_edges'] = {} if not 'incoming_edges' in struct_attr else struct_attr['incoming_edges']
                 struct_attr['outgoing_edges'] = {} if not 'outgoing_edges' in struct_attr else struct_attr['outgoing_edges']
-                self.hyperdex_client.put(GENERIC_VERTEX, uid, struct_attr)
+                self.hyperdex_client.put(self._generic_vertex, uid, struct_attr)
         else:
             #the vertex is of a certain type
             if self.sysadmin.is_vertex_type(vertex_type):
@@ -166,17 +168,17 @@ class HyperDexStore():
                 logging.debug('Inserting vertex for id: ' + str(uid))
                 if struct_attr is None:
                     #the vertex has no structured attributes and may empty (except for the unstructured attributes)
-                    self.hyperdex_client.put(vertex_type, uid, { 'value' : str(unstrc_att),
+                    self.hyperdex_client.put('{}_{}'.format(self._graph_name,vertex_type), uid, { 'value' : str(unstrc_att),
                                                     'incoming_edges' : {}, 'outgoing_edges' : {} })
                 else:
                     #set the payload of this vertex
                     struct_attr['value'] = str(unstrc_att)
                     struct_attr['incoming_edges'] = {} if not 'incoming_edges' in struct_attr else struct_attr['incoming_edges']
                     struct_attr['outgoing_edges'] = {} if not 'outgoing_edges' in struct_attr else struct_attr['outgoing_edges']
-                    self.hyperdex_client.put(vertex_type, uid, struct_attr)
+                    self.hyperdex_client.put('{}_{}'.format(self._graph_name,vertex_type), uid, struct_attr)
             else:
-                logging.debug('Vertex type not found: ' + vertex_type)
-                raise TypeNotFoundException('Vertex type not found: ' + vertex_type)
+                logging.debug('Vertex type not found: {}_{}'.format(self._graph_name,vertex_type))
+                raise TypeNotFoundException('Vertex type not found: {}_{}'.format(self._graph_name, vertex_type))
         return uid
 
   
@@ -190,9 +192,9 @@ class HyperDexStore():
             vertex_type: The type identifier of this vertex (str). 
         '''
         if vertex_type is None:
-            self.hyperdex_client.delete(GENERIC_VERTEX, uid)
+            self.hyperdex_client.delete(self._generic_vertex, uid)
         else:
-            self.hyperdex_client.delete(vertex_type, uid)
+            self.hyperdex_client.delete('{}_{}'.format(self._graph_name,vertex_type), uid)
         self.sysadmin.add_obsolete_id(uid)    
     
     def get_graph_element(self, uid, element_type):
@@ -207,7 +209,7 @@ class HyperDexStore():
         Return:
             A plain object from HyperDex, representing the graph element (dict).
         '''
-        return self.hyperdex_client.get(element_type, uid)
+        return self.hyperdex_client.get('{}_{}'.format(self._graph_name, element_type), uid)
     
     def put_graph_element(self, uid, element_type, element):
         '''
@@ -218,7 +220,7 @@ class HyperDexStore():
             element_type: Identifier of the requested graph element (str).
             
         '''
-        self.hyperdex_client.put(element_type, uid, element)
+        self.hyperdex_client.put('{}_{}'.format(self._graph_name,element_type), uid, element)
         
     def add_edge(self, src_vertex, src_type, tar_vertices, edge_type, attributes):
         '''
@@ -239,15 +241,15 @@ class HyperDexStore():
             uid = self.sysadmin.get_next_id()
             #print(attributes)
             #store the edge object in the related hyperspace 
-            self.hyperdex_client.put(edge_type, uid, attributes)
+            self.hyperdex_client.put('{}_{}'.format(self._graph_name,edge_type), uid, attributes)
         else:
-            logging.debug('Edge type not found: ' + edge_type)
-            raise TypeNotFoundException('Edge type not found: ' + edge_type)
+            logging.debug('Edge type not found: {}_{}'.format(self._graph_name, edge_type))
+            raise TypeNotFoundException('Edge type not found: {}_{}'.format(self._graph_name, edge_type))
         #add the newly created edge to the index structure
-        self.hyperdex_client.map_add(src_type, src_vertex, {'outgoing_edges' : {uid : edge_type}})
+        self.hyperdex_client.map_add('{}_{}'.format(self._graph_name,src_type), src_vertex, {'outgoing_edges' : {uid : edge_type}})
         #iterate over all target vertices, add this edge to the incoming edge structure
         for tar in tar_vertices.keys():
-            self.hyperdex_client.map_add(tar_vertices[tar], tar, {'incoming_edges' : {uid : edge_type}})
+            self.hyperdex_client.map_add('{}_{}'.format(self._graph_name,tar_vertices[tar]), tar, {'incoming_edges' : {uid : edge_type}})
         return uid
     
     def edge_add_target(self, tar_vertex, tar_type, edge_uid, edge_type):
@@ -260,9 +262,9 @@ class HyperDexStore():
             edge_uid: The unique identifier of the edge (int). 
             edge_type: The type of the edge (str).
         '''
-        self.hyperdex_client.map_add(edge_type, edge_uid, {'target' : tar_vertex})
+        self.hyperdex_client.map_add('{}_{}'.format(self._graph_name,edge_type), edge_uid, {'target' : tar_vertex})
         #update the incoming edge data structure of the target vertex
-        self.hyperdex_client.map_add(tar_type, tar_vertex, {'incoming_edges' : edge_uid })
+        self.hyperdex_client.map_add('{}_{}'.format(self._graph_name,tar_type), tar_vertex, {'incoming_edges' : edge_uid })
     
     def edge_rm_target(self, tar_vertex, tar_type, edge_uid, edge_type):
         '''
@@ -276,8 +278,8 @@ class HyperDexStore():
         '''
         #TODO check whether this is the last target vertex
         #if this is the case, remove edge
-        self.hyperdex_client.map_remove(edge_type, edge_uid, {'target' : tar_vertex})
-        self.hyperdex_client.map_remove(tar_type, tar_vertex, {'incoming_edges' : edge_uid})
+        self.hyperdex_client.map_remove('{}_{}'.format(self._graph_name,edge_type), edge_uid, {'target' : tar_vertex})
+        self.hyperdex_client.map_remove('{}_{}'.format(self._graph_name,tar_type), tar_vertex, {'incoming_edges' : edge_uid})
         
     def rm_edge(self, src_vertex, src_type, edge_uid, edge_type):
         '''
@@ -290,12 +292,12 @@ class HyperDexStore():
             edge_type: The type of the edge (str).
         '''
         #TODO enable edge removal using only id and type
-        self.hyperdex_client.map_remove(src_type, src_vertex, {'outgoing_edges' : edge_uid })
+        self.hyperdex_client.map_remove('{}_{}'.format(self._graph_name,src_type), src_vertex, {'outgoing_edges' : edge_uid })
         edge = self.get_edge_by_id(edge_uid, edge_type)
         for tar in edge['target'].keys():
-            self.hyperdex_client.map_remove(edge['target'][tar], tar, {'incoming_edges' : edge_uid})
+            self.hyperdex_client.map_remove('{}_{}'.format(self._graph_name,edge['target'][tar]), tar, {'incoming_edges' : edge_uid})
         self.sysadmin.add_obsolete_id(edge_uid)
-        self.hyperdex_client.delete(edge_type, edge_uid)
+        self.hyperdex_client.delete('{}_{}'.format(self._graph_name,edge_type), edge_uid)
         
     def get_vertex(self, uid, vertex_type=None):
         '''
@@ -311,13 +313,13 @@ class HyperDexStore():
         result = None
         if vertex_type is None:
             #if this is vertex has no specified type
-            result = self.hyperdex_client.get(GENERIC_VERTEX, uid)
+            result = self.hyperdex_client.get(self._generic_vertex, uid)
         else:
             if self.sysadmin.is_vertex_type(vertex_type):
-                result = self.hyperdex_client.get(vertex_type, uid)
+                result = self.hyperdex_client.get(self._graph_name + vertex_type, uid)
             else:
-                logging.debug('Vertex type not found: ' + vertex_type)
-                raise TypeNotFoundException('Vertex type not found: ' + vertex_type)
+                logging.debug('Vertex type not found: ' + self._graph_name + vertex_type)
+                raise TypeNotFoundException('Vertex type not found: ' + self._graph_name + vertex_type)
         #if result is still none, the specified vertex does not exist
         if result is None:
             logging.debug('Vertex not found : ' + str(uid))
@@ -340,16 +342,16 @@ class HyperDexStore():
             raise TypeError('Illigal argument exception - must not be None')
         else:
             if self.sysadmin.is_edge_type(edge_type):
-                result = self.hyperdex_client.get(edge_type, uid)
+                result = self.hyperdex_client.get('{}_{}'.format(self._graph_name, edge_type), uid)
             else:
-                logging.debug('Edge type not found: ' + edge_type)
-                raise TypeNotFoundException('Edge type not found: ' + edge_type)
+                logging.debug('EdgeType not found: {}_{}'.format(self._graph_name, edge_type))
+                raise TypeNotFoundException('EdgeType not found: {}_{}'.format(self._graph_name, edge_type))
         return result 
     
     def search(self, element_type, query):
         #TODO improve search feature
         #TODO add commentary
-        return self.hyperdex_client.search(element_type, query)
+        return self.hyperdex_client.search('{}_{}'.format(self._graph_name,element_type), query)
     
     def get_edge_by_source(self, source_vertex, edge_type):
         '''
@@ -363,7 +365,7 @@ class HyperDexStore():
         Return:
             List of plain dictionaries, representing the requested edge objects (list<dict>).
         '''
-        return self.hyperdex_client.search(edge_type, {'source' : source_vertex})
+        return self.hyperdex_client.search(self._graph_name + edge_type, {'source' : source_vertex})
 
     
     def vertex_type_exists(self, vertex_type):
@@ -390,5 +392,17 @@ class HyperDexStore():
         '''
         return self.sysadmin.is_edge_type(edge_type)
         
+    def count_elements(self, element_type):
+        '''
+        Returns the number of graph elements associated with the given
+        element type.
+        
+        Args:
+            element_type: The identifier of the graph element (str).
+            
+        Return:
+            Count of graph elements (int).
+        '''
+        return self.hyperdex_client.count('{}_{}'.format(self._graph_name,element_type), {})
 
         

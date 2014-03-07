@@ -6,6 +6,9 @@
 
 
 """
+
+import logging
+
 class ElementType(object):
     '''
     The ElementType class is an in-memory representation of a graph element
@@ -14,8 +17,8 @@ class ElementType(object):
     '''
 
 
-    def __init__(self, typedef, type_name):
-        self._get_typedefinition = typedef
+    def __init__(self, storage, type_name):
+        self._storage = storage
         self._typename = type_name
 
 
@@ -28,7 +31,7 @@ class ElementType(object):
             The created type declaration (dict).
         '''
         result = {}
-        for attr in self._get_typedefinition(self._typename):
+        for attr in self._storage.typeadmin.get_type_description(self._typename):
             result[attr[1]] = attr[0]
         return result
     
@@ -40,10 +43,25 @@ class ElementType(object):
             The type name (str).
         '''
         return self._typename
-       
-    #TODO count available elements
+    
+    def remove(self):
+        '''
+        Removes this element type and all associated elements.
+        '''
+        logging.info('Removing ElementType {} and all its entities'.format(self._typename))
+        self._storage.rm_vertex_type(self._typename)
+        
+    def count(self):
+        '''
+        Returns the number of graph elements associated with this type.
+        
+        Return:
+            Count of related graph elements (int).
+        '''
+        return self._storage.count_elements(self._typename)
+        
+    
     #TDOD provide search method on these elements
-    #TODO remove all elements plus type
     
     
 class VertexType(ElementType, object):
@@ -51,14 +69,14 @@ class VertexType(ElementType, object):
     The VertexType.
     '''
 
-    def __init__(self, typedef, vertex_type):
-        super(VertexType, self).__init__(typedef, vertex_type)
+    def __init__(self, storage, vertex_type):
+        super(VertexType, self).__init__(storage, vertex_type)
         
 class EdgeType(ElementType, object):
     '''
     The EdgeType.
     '''
 
-    def __init__(self, typedef, edge_type):
-        super(EdgeType, self).__init__(typedef, edge_type)
+    def __init__(self, storage, edge_type):
+        super(EdgeType, self).__init__(storage, edge_type)
         

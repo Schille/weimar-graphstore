@@ -14,19 +14,21 @@ from hyperdex.client import Client
 from graph.requestgraphelements import RequestVertexType, RequestEdgeType,\
     RequestVertex
 import os
+from pydevsrc import pydevd
 
 
-SYSTEM = 'system'
+SYSTEM = 'test_graph_system'
 NEXT_ID = 'nextid'
 OBSOLETE_ID = 'obsolete_id'
 VERTEX_TYPES = 'vertex_types'
 EDGE_TYPES = 'edge_types'
-TYPE_DESCRIPTION = 'space_description'
-GENERIC_VERTEX = 'generic_vertex'
+TYPE_DESCRIPTION = 'test_graph_space_description'
+GENERIC_VERTEX = 'test_graph_generic_vertex'
 ADDRESS = '127.0.0.1'
 PORT = 1990
 vertex_type = 'testvertex'
 edge_type = 'testedge'
+GRAPH = 'test_graph'
 
 class Test(unittest.TestCase):
 
@@ -34,13 +36,15 @@ class Test(unittest.TestCase):
     def setUp(self):
         self.hyperdex = Admin(ADDRESS, PORT)
         self.hyperdex_client = Client(ADDRESS, PORT)
-        self.g = HyperDexGraph(ADDRESS, PORT)
+        self.g = HyperDexGraph(ADDRESS, PORT, GRAPH)
 
 
     def tearDown(self):
         self.hyperdex.rm_space(TYPE_DESCRIPTION)
         self.hyperdex.rm_space(SYSTEM)
         self.hyperdex.rm_space(GENERIC_VERTEX)
+        self.hyperdex.rm_space('id')
+        self.hyperdex.rm_space(GRAPH + '_id_sys')
         
         
 
@@ -52,7 +56,7 @@ class Test(unittest.TestCase):
                              vertext1.get_type_definition())
         self.assertEqual(vertex_type, vertext1.get_type_name())
         os.system('hyperdex wait-until-stable -h {} -p {}'.format(ADDRESS, PORT))
-        self.hyperdex.rm_space(vertex_type)
+        self.hyperdex.rm_space(GRAPH + '_' + vertex_type)
         
     def test_create_edge_type(self):
         req1 = RequestEdgeType(edge_type,('string', 'name'), ('int', 'age'))
@@ -60,7 +64,7 @@ class Test(unittest.TestCase):
         self.assertEqual({'source_vertex_type': 'string', 'age': 'int', 'name': 'string', 'source_uid': 'int', 'target': 'map(int, string)'},
                           edge1.get_type_definition())
         os.system('hyperdex wait-until-stable -h {} -p {}'.format(ADDRESS, PORT))
-        self.hyperdex.rm_space(edge_type)
+        self.hyperdex.rm_space(GRAPH + '_' + edge_type)
         
     def test_get_vertex_type(self):
         req1 = RequestVertexType(vertex_type, ('string', 'name'), ('int', 'age'))
@@ -69,10 +73,10 @@ class Test(unittest.TestCase):
         self.assertDictEqual({'age': 'int', 'outgoing_edges': 'map(int, string)', 'incoming_edges': 'map(int, string)', 'name': 'string'},
                              vertext1.get_type_definition())
         self.assertEqual(vertex_type, vertext1.get_type_name())
-        self.hyperdex.rm_space(vertex_type)
+        self.hyperdex.rm_space(GRAPH + '_' + vertex_type)
         
     def test_complex_graph(self):
-        
+        pydevd.settrace('192.168.57.1', 5678)
         #create vertex type User
         user_type=RequestVertexType('User', ('string', 'first'), ('string', 'last'), ('int', 'age'))
         user=self.g.create_vertex_type(user_type)
@@ -106,10 +110,11 @@ class Test(unittest.TestCase):
         u5.add_edge(m1, rates, {'stars':1})
         u5.add_edge(m3, rates, {'stars':1})
         u5.add_edge(m4, rates, {'stars':2})
+        
         #count if everything is present
-        self.assertEqual(5, self.hyperdex_client.count('User', {}))
-        self.assertEqual(4, self.hyperdex_client.count('Movie', {}))
-        self.assertEqual(12, self.hyperdex_client.count('rates', {}))
+        self.assertEqual(5, user.count())
+        self.assertEqual(4, movie.count())
+        self.assertEqual(12, rates.count())
         #perform some simple traversals
         self.assertEqual('DuckTails',u1.get_outgoing_edges(rates)[0].get_target()[0].get_property('title'))
         #calc avg rating of DuckTails
@@ -132,9 +137,9 @@ class Test(unittest.TestCase):
         self.assertEqual(3, len(u2.get_outgoing_edges()))
         #remove an item recursively 
         m4.remove()
-        self.assertEqual(5, self.hyperdex_client.count('User', {}))
-        self.assertEqual(3, self.hyperdex_client.count('Movie', {}))
-        self.assertEqual(9, self.hyperdex_client.count('rates', {}))
+        self.assertEqual(5, user.count())
+        self.assertEqual(3, movie.count())
+        self.assertEqual(9, rates.count())
         self.assertEqual(2, len(u2.get_outgoing_edges()))
         #remove yet another item 
         u1.remove()
@@ -153,11 +158,10 @@ class Test(unittest.TestCase):
         self.assertEqual('DuckTales is an American animated television series produced by Disney Television Animation.',m1.get_property('comment'))
         
         #remove everything
-        self.hyperdex.rm_space('User')
-        self.hyperdex.rm_space('Movie')
-        self.hyperdex.rm_space('rates')
-        
-        
+        user.remove()
+        movie.remove()
+        rates.remove()
+
         
         
 

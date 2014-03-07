@@ -11,7 +11,6 @@ from hyperdex.client import HyperClientException
 import os
 import logging
 
-TYPE_DESCRIPTION = 'space_description'
 
 class TypeAdmin():
     '''
@@ -21,7 +20,7 @@ class TypeAdmin():
     '''
 
 
-    def __init__(self, address, port, hyperdex_client, hyperdex_admin):
+    def __init__(self, address, port, graph_name, hyperdex_client, hyperdex_admin):
         '''
         Constructor.
         '''
@@ -29,15 +28,17 @@ class TypeAdmin():
         self._address = address
         self._port = port
         self.hyperdex_client = hyperdex_client
+        self._graph_name = graph_name
+        self._type_description = graph_name + '_space_description'
     
     def validate_database(self):
         try:
-            self.hyperdex_client.get(TYPE_DESCRIPTION, 1)
+            self.hyperdex_client.get(self._type_description, 1)
             logging.info('Space_description available')
         except HyperClientException, e:
             if e.symbol() == 'HYPERDEX_CLIENT_UNKNOWNSPACE':
                 space = '''
-                space ''' + TYPE_DESCRIPTION  + ''' 
+                space ''' + self._type_description  + ''' 
                 key spacename
                 attributes map(string,string) attr
                 '''
@@ -61,17 +62,17 @@ class TypeAdmin():
         #highly inefficient
         #TODO find a appropriate solution to partition subspaces for newly created types
         attr = self._dictify_attributes(attributes) #convert the attribute definition to a dictionary
-        space = 'space ' + element_name + '\nkey int id\nattributes\n' \
+        space = 'space ' + '{}_{}'.format(self._graph_name,element_name) + '\nkey int id\nattributes\n' \
             + self._stringify_attributes(attributes) + ',\n string value'#convert the dictionary to a space declaration 
         #create a new hyperspace for the requested graph element type
         self.hyperdex_admin.add_space(space)
         #TODO refactor this debris
         for i in xrange(5):
             try:
-                self.hyperdex_client.put(TYPE_DESCRIPTION, element_name, {'attr' : attr})
+                self.hyperdex_client.put(self._type_description, element_name, {'attr' : attr})
                 break
             except Exception, e:
-                logging.warn('Need a further attempt ' + TYPE_DESCRIPTION)
+                logging.warn('Need a further attempt ' + self._type_description)
                 os.system('hyperdex wait-until-stable -h {} -p {}'.format(self._address, self._port))
                 if i == 4:
                         raise e
@@ -84,8 +85,8 @@ class TypeAdmin():
         Args:
             element_name: The identifier of this element type (str).
         '''
-        self.hyperdex_client.rm_space(element_name)
-        self.hyperdex_client.delete(TYPE_DESCRIPTION, element_name)
+        self.hyperdex_admin.rm_space('{}_{}'.format(self._graph_name,element_name))
+        self.hyperdex_client.delete(self._type_description, element_name)
     
     def get_type_description(self, space_name):
         '''
@@ -99,7 +100,7 @@ class TypeAdmin():
             List of declared attributes for the given element type (list<tuple<str, str>>). 
         '''
         #get the type description
-        description = self.hyperdex_client.get(TYPE_DESCRIPTION, space_name)
+        description = self.hyperdex_client.get(self._type_description, space_name)
         if description is not None:
             result = []
             #rebuild the space description 
