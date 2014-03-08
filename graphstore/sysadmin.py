@@ -247,7 +247,8 @@ class SysAdmin():
                 if self.hyperdex_client.put_if_not_exist(self._id_sys, self._obsolete_id , {'value' : set([uid])}):
                     return
         logging.error('could not add to obsolte id: ' + uid)
-            
+
+    '''            
     def register_element_id(self, element_type, uid):
         if self.is_vertex_type(element_type) or self.is_edge_type(element_type):
             try:
@@ -264,8 +265,9 @@ class SysAdmin():
     
     def optout_element_id(self, element_type, uid):
         if self.is_vertex_type(element_type) or self.is_edge_type(element_type):
-            self.hyperdex_client.set_remove(self._id_sys, element_type)
-            
+            self.hyperdex_client.set_remove(self._id_sys, element_type, {'value': uid})
+            self._add_obsolete_id(uid)
+    '''        
             
     
            

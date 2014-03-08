@@ -7,8 +7,7 @@
 
 """
 from serialization import serializer
-from graph.elementtype import ElementType, EdgeType
-
+from graph import elementtype 
 GENERIC_VERTEX = 'generic_vertex'
 
 class GraphElement(object):
@@ -23,7 +22,7 @@ class GraphElement(object):
         Constructor
         '''
         self._uid = uid
-        if isinstance(element_type, ElementType): #if element_type is a complex type object
+        if isinstance(element_type, elementtype.ElementType): #if element_type is a complex type object
             self._element_type = element_type.get_type_name()
         elif isinstance(element_type, str):#if element_type is merely the identifier
             self._element_type = element_type
@@ -101,7 +100,7 @@ class Vertex(GraphElement, object):
         super(Vertex, self).__init__(uid,vertex_type, storage)
     
     def add_edge(self, target_vertices, edge_type, struct_attr = {}, unstruc_attr = {}):
-        if isinstance(edge_type, EdgeType):
+        if isinstance(edge_type, elementtype.EdgeType):
             edge_type = edge_type.get_type_name()
         if isinstance(target_vertices, list):
             target = {}
@@ -128,7 +127,7 @@ class Vertex(GraphElement, object):
             for edge in edges.keys():
                 result.append(Edge(edge, edges[edge], self._storage))
         else:
-            if isinstance(edge_type, EdgeType):
+            if isinstance(edge_type, elementtype.EdgeType):
                 edge_type = edge_type.get_type_name()
             for edge in edges.keys():
                 if edges[edge] == edge_type:
@@ -142,7 +141,7 @@ class Vertex(GraphElement, object):
             for edge in edges.keys():
                 result.append(Edge(edge, edges[edge], self._storage))
         else:
-            if isinstance(edge_type, EdgeType):
+            if isinstance(edge_type, elementtype.EdgeType):
                 edge_type = edge_type.get_type_name()
             for edge in edges.keys():
                 if edges[edge] == edge_type:

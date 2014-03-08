@@ -15,6 +15,7 @@ from hyperdex.client import HyperClientException
 from graphexception import ElementNotFoundException,TypeNotFoundException
 import os
 import logging
+from graphstore.graphexception import TypeNotCreatedException
 
 
 
@@ -85,11 +86,17 @@ class HyperDexStore():
             attributes.append(('map(int, string)', 'incoming_edges'))
         if ('map(int, string)', 'outgoing_edges') not in attributes:
             attributes.append(('map(int, string)', 'outgoing_edges'))
-        #create the vertex within the typeadmin
-        self.typeadmin.create_element_type(vertex_type, attributes)
-        #introduce the type to sysadmin
-        self.sysadmin.add_vertex_type(vertex_type)
-        logging.debug(self.typeadmin.get_type_description(vertex_type))
+        try:
+            #create the vertex within the typeadmin
+            self.typeadmin.create_element_type(vertex_type, attributes)
+            #introduce the type to sysadmin
+            self.sysadmin.add_vertex_type(vertex_type)
+            logging.debug(self.typeadmin.get_type_description(vertex_type))
+        except HyperClientException, e:
+            logging.warn('The VertexType {} in {} was not created (does it already exist?): \
+            inner message: {}'.format(vertex_type, self._graph_name, str(e)))
+
+            
     
     def rm_vertex_type(self, vertex_type):
         '''
@@ -265,6 +272,7 @@ class HyperDexStore():
         self.hyperdex_client.map_add('{}_{}'.format(self._graph_name,edge_type), edge_uid, {'target' : tar_vertex})
         #update the incoming edge data structure of the target vertex
         self.hyperdex_client.map_add('{}_{}'.format(self._graph_name,tar_type), tar_vertex, {'incoming_edges' : edge_uid })
+        
     
     def edge_rm_target(self, tar_vertex, tar_type, edge_uid, edge_type):
         '''
@@ -296,6 +304,7 @@ class HyperDexStore():
         edge = self.get_edge_by_id(edge_uid, edge_type)
         for tar in edge['target'].keys():
             self.hyperdex_client.map_remove('{}_{}'.format(self._graph_name,edge['target'][tar]), tar, {'incoming_edges' : edge_uid})
+        #remove element
         self.sysadmin.add_obsolete_id(edge_uid)
         self.hyperdex_client.delete('{}_{}'.format(self._graph_name,edge_type), edge_uid)
         
@@ -405,4 +414,6 @@ class HyperDexStore():
         '''
         return self.hyperdex_client.count('{}_{}'.format(self._graph_name,element_type), {})
 
+    def get_all_elements(self, element_type):
+        return self.hyperdex_client.search('{}_{}'.format(self._graph_name,element_type), {})
         

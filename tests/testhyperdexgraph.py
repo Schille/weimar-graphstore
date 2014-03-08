@@ -76,7 +76,7 @@ class Test(unittest.TestCase):
         self.hyperdex.rm_space(GRAPH + '_' + vertex_type)
         
     def test_complex_graph(self):
-        pydevd.settrace('192.168.57.1', 5678)
+        #pydevd.settrace('192.168.57.1', 5678)
         #create vertex type User
         user_type=RequestVertexType('User', ('string', 'first'), ('string', 'last'), ('int', 'age'))
         user=self.g.create_vertex_type(user_type)

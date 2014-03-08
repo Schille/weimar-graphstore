@@ -9,6 +9,7 @@
 
 import logging
 
+
 class ElementType(object):
     '''
     The ElementType class is an in-memory representation of a graph element
@@ -72,6 +73,10 @@ class VertexType(ElementType, object):
     def __init__(self, storage, vertex_type):
         super(VertexType, self).__init__(storage, vertex_type)
         
+    def get_vertices(self):
+        from graph import graphelement
+        return [graphelement.Vertex(v['id'],self._typename,self._storage) for v in self._storage.get_all_elements(self._typename)]
+        
 class EdgeType(ElementType, object):
     '''
     The EdgeType.
@@ -79,4 +84,8 @@ class EdgeType(ElementType, object):
 
     def __init__(self, storage, edge_type):
         super(EdgeType, self).__init__(storage, edge_type)
+    
+    def get_edges(self):
+        from graph import graphelement
+        return [graphelement.Edge(e['id'],self._typename,self._storage) for e in self._storage.get_all_elements(self._typename)]
         

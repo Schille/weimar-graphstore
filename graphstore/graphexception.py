@@ -22,3 +22,10 @@ class TypeNotFoundException(Exception):
     def __str__(self, *args, **kwargs):
         return self.value1
     
+class TypeNotCreatedException(Exception):
+    
+    def __init__(self,element_type):
+        self.value = 'Type {0} with not found.'.format(element_type)
+        
+    def __str__(self, *args, **kwargs):
+        return self.value1

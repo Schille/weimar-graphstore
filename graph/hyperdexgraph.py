@@ -43,9 +43,10 @@ class HyperDexGraph(object):
         Returns:
             Returns a newly created HyperDexGraph handle for the database.
         '''
+        logging.basicConfig(filename='hyperdexgraph.log', filemode='w', level=logging.DEBUG)
         self._storage = HyperDex(address, port, graph)
         self._graph_name = graph
-        logging.basicConfig(filename='hyperdexgraph.log', filemode='w', level=logging.DEBUG)
+        
     
     def get_vertex_type(self, vertex_type):
         '''
