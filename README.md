@@ -80,18 +80,18 @@ u4.add_edge(m4, rates, {'stars':5})
 u5.add_edge(m1, rates, {'stars':1})
 u5.add_edge(m3, rates, {'stars':1})
 u5.add_edge(m4, rates, {'stars':2})
-#perform a simple traversal, following only the 'rates' type of edge
+#perform a simple traversal, following only the 'rates' type of edge - use get_property (becuase of no special reason)
 self.assertEqual('DuckTails',u1.get_outgoing_edges(rates)[0].get_target()[0].get_property('title'))
 #calc avg rating of DuckTails (m1)
 r, c = 0,0
 for rating in m1.get_incoming_edges(rates):
   c = c + 1
-  r = r + rating.get_property('stars') # Average stars will be 15 / 5 = 3
+  r = r + rating.stars # Average stars will be 15 / 5 = 3
 #search vertices
 l1=g.search_vertex(user, ('last', 'Duck'))
 r = []
 for vertex in l1:
-  print(vertex.get_property('first') + ' ' + vertex.get_property('last'))
+  print('{} {}'.format(vertex.first, vertex.last))
         
 #Reqex search is not yet implemented
 

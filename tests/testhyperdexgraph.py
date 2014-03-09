@@ -123,13 +123,13 @@ class Test(unittest.TestCase):
         r, c = 0,0
         for rating in m1.get_incoming_edges(rates):
             c = c + 1
-            r = r + rating.get_property('stars')
+            r = r + rating.stars
         self.assertEqual(3, r / c) # Average stars will be 15 / 5 = 3
         #search vertices
         l1=self.g.search_vertex(user, ('last', 'Duck'))
         r = []
         for vertex in l1:
-            r.append(vertex.get_property('first') + ' ' + vertex.get_property('last'))
+            r.append(vertex.first + ' ' + vertex.last)
         self.assertIn('Donald Duck', r)
         #Reqex search is not yet implemented
         #self.assertIn('Scrooge McDuck', r)
@@ -157,9 +157,8 @@ class Test(unittest.TestCase):
         #see whether it was stored.
         self.assertItemsEqual(['comment', 'outgoing_edges', 'incoming_edges', 'title',\
                                'released', 'length', 'type'], m1.get_property_keys())
-        self.assertEqual('DuckTales is an American animated television series produced by Disney Television Animation.',m1.get_property('comment'))
+        self.assertEqual('DuckTales is an American animated television series produced by Disney Television Animation.',m1.comment)
         
-        #add some unstructured attributes - the other way
         
         #remove everything
         user.remove()
