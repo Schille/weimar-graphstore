@@ -10,6 +10,8 @@ from serialization import serializer
 from graph import elementtype 
 GENERIC_VERTEX = 'generic_vertex'
 
+
+
 class GraphElement(object):
     '''
     This class is the in-memory representation of an existing graph element. It is a handle
@@ -29,6 +31,26 @@ class GraphElement(object):
         else:
             raise TypeError('Illigal argument exception')
         self._storage = storage#pass a handle on the underlying graphstorage provider
+
+            
+    def __getattr__(self, attr):
+        # enable property access directly by [graphelement].[propertykey]
+        element = self._storage.get_graph_element(self._uid, self._element_type)
+        if attr in element:
+            return element[attr]
+        unstr = serializer.deserialize(element['value'])
+        if attr in unstr:
+            return unstr[attr]
+        raise AttributeError('Vertex has no property ' + str(attr))
+    
+    def __setattr__(self, attr, value):
+        if attr.startswith('_'):
+            super(GraphElement, self).__setattr__(attr, value)
+            return
+        self.set_property(attr, value)
+
+    def _get_attr_value(self, key):
+        return self._storage.get_graph_element(self._uid, self._element_type)[key] 
 
     def get_property(self, key):
         '''
@@ -61,7 +83,8 @@ class GraphElement(object):
             key: The property identifier (str). 
             value: The value of this property (any type).
         '''
-        #TODO prevent user from changing outgoing/incoming edges
+        if key == 'incoming_edges' or key == 'outgoing_edges':
+            raise TypeError('Connot set key {} with value {}'.format(key, str(value)))
         props = self._storage.get_graph_element(self._uid, self._element_type)
         if key in props: #if the key is part of the structured attributes
             #TODO check type, prevent from storing wrong data types
@@ -100,6 +123,19 @@ class Vertex(GraphElement, object):
         super(Vertex, self).__init__(uid,vertex_type, storage)
     
     def add_edge(self, target_vertices, edge_type, struct_attr = {}, unstruc_attr = {}):
+        '''
+        Adds an edge to an existing vertex object. This edge can point to multiple 
+        target vertices.
+        
+        Args:
+            target_vertices: A target vertex/list of target vertices of this edge (Vertex/list<Vertex>).
+            edge_type: The EdgeType of the intended edge (EdgeType).
+            struct_attr: The structured attributes of this edge object (dict).
+            unstruct_attr: The unstructured attributes of this edge object (dict).
+        
+        Return:
+            An edge object, representing the newly created edge between the given vertices (Edge). 
+        '''
         if isinstance(edge_type, elementtype.EdgeType):
             edge_type = edge_type.get_type_name()
         if isinstance(target_vertices, list):

@@ -34,7 +34,7 @@ class RequestGraphElement(object):
     
     def add_property(self, key, value):
         '''
-        Adds a property to this graph element.
+        Adds a property to this requested graph element.
         
         Args:
             key: The property's key (str).
