@@ -41,12 +41,11 @@ class Test(unittest.TestCase):
 
 
     def tearDown(self):
-        pass
-        #self.hyperdex.rm_space(TYPE_DESCRIPTION)
-        #self.hyperdex.rm_space(SYSTEM)
-        #self.hyperdex.rm_space(GENERIC_VERTEX)
-        #self.hyperdex.rm_space('id')
-        #self.hyperdex.rm_space(GRAPH + '_id_sys')
+        self.hyperdex.rm_space(TYPE_DESCRIPTION)
+        self.hyperdex.rm_space(SYSTEM)
+        self.hyperdex.rm_space(GENERIC_VERTEX)
+        self.hyperdex.rm_space('id')
+        self.hyperdex.rm_space(GRAPH + '_id_sys')
 
     def test_count_elements(self):
         user_req = RequestVertexType('User', ('string', 'name'), ('int', 'age'))
@@ -55,12 +54,15 @@ class Test(unittest.TestCase):
         for i in xrange(50):
             self.g.insert_vertex(RequestVertex(user, {'name':'user'+str(i) , 'age':i}))
         self.assertEqual(50, user.count())
+        user.remove()
         
         
     def test_iterate_elements(self):
-        #pydevd.settrace('192.168.57.1', 5678)
-        #user_req = RequestVertexType('User', ('string', 'name'), ('int', 'age'))
-        #self.g.create_vertex_type(user_req)
+        user_req = RequestVertexType('User', ('string', 'name'), ('int', 'age'))
+        self.g.create_vertex_type(user_req)
+        user = self.g.get_vertex_type('User')
+        for i in xrange(50):
+            self.g.insert_vertex(RequestVertex(user, {'name':'user'+str(i) , 'age':i}))
         user = self.g.get_vertex_type('User')
         all_users = user.get_vertices()
         self.assertEqual(50, len(all_users))

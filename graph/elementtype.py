@@ -45,12 +45,6 @@ class ElementType(object):
         '''
         return self._typename
     
-    def remove(self):
-        '''
-        Removes this element type and all associated elements.
-        '''
-        logging.info('Removing ElementType {} and all its entities'.format(self._typename))
-        self._storage.rm_vertex_type(self._typename)
         
     def count(self):
         '''
@@ -76,6 +70,13 @@ class VertexType(ElementType, object):
     def get_vertices(self):
         from graph import graphelement
         return [graphelement.Vertex(v['id'],self._typename,self._storage) for v in self._storage.get_all_elements(self._typename)]
+    
+    def remove(self):
+        '''
+        Removes this element type and all associated elements.
+        '''
+        logging.info('Removing ElementType {} and all its entities'.format(self._typename))
+        self._storage.rm_vertex_type(self._typename)
         
 class EdgeType(ElementType, object):
     '''
@@ -89,3 +90,9 @@ class EdgeType(ElementType, object):
         from graph import graphelement
         return [graphelement.Edge(e['id'],self._typename,self._storage) for e in self._storage.get_all_elements(self._typename)]
         
+    def remove(self):
+        '''
+        Removes this element type and all associated elements.
+        '''
+        logging.info('Removing ElementType {} and all its entities'.format(self._typename))
+        self._storage.rm_edge_type(self._typename)

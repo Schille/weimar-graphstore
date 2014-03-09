@@ -56,15 +56,16 @@ class Test(unittest.TestCase):
                              vertext1.get_type_definition())
         self.assertEqual(vertex_type, vertext1.get_type_name())
         os.system('hyperdex wait-until-stable -h {} -p {}'.format(ADDRESS, PORT))
-        self.hyperdex.rm_space(GRAPH + '_' + vertex_type)
+        vertext1.remove()
         
     def test_create_edge_type(self):
         req1 = RequestEdgeType(edge_type,('string', 'name'), ('int', 'age'))
+        #pydevd.settrace('192.168.57.1', 5678)
         edge1 = self.g.create_edge_type(req1)
         self.assertEqual({'source_vertex_type': 'string', 'age': 'int', 'name': 'string', 'source_uid': 'int', 'target': 'map(int, string)'},
                           edge1.get_type_definition())
         os.system('hyperdex wait-until-stable -h {} -p {}'.format(ADDRESS, PORT))
-        self.hyperdex.rm_space(GRAPH + '_' + edge_type)
+        edge1.remove()
         
     def test_get_vertex_type(self):
         req1 = RequestVertexType(vertex_type, ('string', 'name'), ('int', 'age'))
@@ -73,13 +74,12 @@ class Test(unittest.TestCase):
         self.assertDictEqual({'age': 'int', 'outgoing_edges': 'map(int, string)', 'incoming_edges': 'map(int, string)', 'name': 'string'},
                              vertext1.get_type_definition())
         self.assertEqual(vertex_type, vertext1.get_type_name())
-        self.hyperdex.rm_space(GRAPH + '_' + vertex_type)
+        vertext1.remove()
         
     def test_complex_graph(self):
         pass
         #pydevd.settrace('192.168.57.1', 5678)
         #create vertex type User
-        '''
         user_type=RequestVertexType('User', ('string', 'first'), ('string', 'last'), ('int', 'age'))
         user=self.g.create_vertex_type(user_type)
         #create vertex type Movie
@@ -159,11 +159,13 @@ class Test(unittest.TestCase):
                                'released', 'length', 'type'], m1.get_property_keys())
         self.assertEqual('DuckTales is an American animated television series produced by Disney Television Animation.',m1.get_property('comment'))
         
+        #add some unstructured attributes - the other way
+        
         #remove everything
         user.remove()
         movie.remove()
         rates.remove()
-        '''
+
     
     def test_insert_vertex(self):
         user_type=RequestVertexType('User', ('string', 'first'), ('string', 'last'), ('int', 'age'))

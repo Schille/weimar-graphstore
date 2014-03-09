@@ -6,6 +6,6 @@ import glob
 
 print('Running all modules in tests/')
 
-os.chdir("tests/")
-for file in glob.glob("*.py"):
+
+for file in glob.glob("tests/*.py"):
     os.system('nosetests -v ' + file)

@@ -44,7 +44,8 @@ from graph.hyperdexgraph import HyperDexGraph
 from graph.requestgraphelements import RequestVertexType, RequestEdgeType, RequestVertex
 
 #open the graph
-g=HyperDexGraph('127.0.0.1', 1990)
+GRAPH_NAME = 'default'
+g=HyperDexGraph('127.0.0.1', 1990, GRAPH_NAME)
 
 #create vertex type User with structured attributes
 user_type=RequestVertexType('User', ('string', 'first'), ('string', 'last'), ('int', 'age'))
@@ -106,6 +107,17 @@ for rating in m1.get_incoming_edges(rates):
         
 #add some unstructured attributes
 m1.set_property('comment', 'DuckTales is an American animated television series produced by Disney Television Animation.')
+
+#add structured/unstructured attributes - the other way (this is also persistent)
+m2.comment = 'The Wise Little Hen is a Walt Disney\'s Silly Symphonies cartoon, based on the fairy tale The Little Red Hen'
+
+
+
+#remove everthing
+user.remove()
+movie.remove()
+rates.remove()
+
 ```
 
 

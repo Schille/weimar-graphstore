@@ -10,17 +10,21 @@ import unittest
 from graphstore.sysadmin import SysAdmin
 from hyperdex.client import Client
 from hyperdex.admin import Admin as HAdmin
+from pydevsrc import pydevd
 
 
-SYSTEM = 'system'
-NEXT_ID = 'nextid'
+
+SYSTEM = 'test_graph_system'
 OBSOLETE_ID = 'obsolete_id'
 VERTEX_TYPES = 'vertex_types'
 EDGE_TYPES = 'edge_types'
-vertex_type = 'testvertex'
-edge_type = 'testedge'
+TYPE_DESCRIPTION = 'test_graph_space_description'
+GENERIC_VERTEX = 'test_graph_generic_vertex'
 ADDRESS = '127.0.0.1'
 PORT = 1990
+vertex_type = 'testvertex'
+edge_type = 'testedge'
+GRAPH = 'test_graph'
 
 class Test(unittest.TestCase):
 
@@ -28,12 +32,16 @@ class Test(unittest.TestCase):
     def setUp(self):
         self.hyperdex_client = Client(ADDRESS, PORT)
         self.hyperdex_admin = HAdmin(ADDRESS, PORT)
-        self.sysadmin = SysAdmin(ADDRESS, PORT, self.hyperdex_client, self.hyperdex_admin)
+        self.sysadmin = SysAdmin(ADDRESS, PORT, GRAPH, self.hyperdex_client, self.hyperdex_admin)
         self.sysadmin.validate_database()
 
 
     def tearDown(self):
+        #self.hyperdex_admin.rm_space(TYPE_DESCRIPTION)
         self.hyperdex_admin.rm_space(SYSTEM)
+        #self.hyperdex_admin.rm_space(GENERIC_VERTEX)
+        self.hyperdex_admin.rm_space('id')
+        self.hyperdex_admin.rm_space(GRAPH + '_id_sys')
 
     def test_add_vertex_type(self):    
         self.sysadmin.add_vertex_type(vertex_type)
