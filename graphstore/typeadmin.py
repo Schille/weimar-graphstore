@@ -8,8 +8,10 @@
 
 """
 from hyperdex.client import HyperClientException
+from hyperdex.admin import HyperDexAdminException
 import os
 import logging
+import traceback
 
 
 class TypeAdmin():
@@ -61,11 +63,18 @@ class TypeAdmin():
         #currently all attributes are assigned to the same subspace - which is 
         #highly inefficient
         #TODO find a appropriate solution to partition subspaces for newly created types
+        os.system('hyperdex wait-until-stable -h {} -p {}'.format(self._address, self._port))
         attr = self._dictify_attributes(attributes) #convert the attribute definition to a dictionary
-        space = 'space ' + '{}_{}'.format(self._graph_name,element_name) + '\nkey int id\nattributes\n' \
+        space = 'space ' + '{}_{}'.format(self._graph_name,element_name) + '\nkey int graph_uid\nattributes\n' \
             + self._stringify_attributes(attributes) + ',\n string value'#convert the dictionary to a space declaration 
         #create a new hyperspace for the requested graph element type
-        self.hyperdex_admin.add_space(space)
+        try:
+            self.hyperdex_admin.add_space(space)
+        except HyperDexAdminException, e:
+            os.system('hyperdex wait-until-stable -h {} -p {}'.format(self._address, self._port))
+            self.hyperdex_admin.add_space(space)
+            traceback.print_exc()
+            
         #TODO refactor this debris
         for i in xrange(5):
             try:
@@ -87,6 +96,7 @@ class TypeAdmin():
         '''
         self.hyperdex_admin.rm_space('{}_{}'.format(self._graph_name,element_name))
         self.hyperdex_client.delete(self._type_description, element_name)
+        os.system('hyperdex wait-until-stable -h {} -p {}'.format(self._address, self._port))
     
     def get_type_description(self, space_name):
         '''

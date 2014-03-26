@@ -188,8 +188,15 @@ class SysAdmin():
             else:
                 return self.get_next_id()
         else:
-            self.hyperdex_client.atomic_add(ID, self.graph_id, { 'value' : 1})
-            return uid['value']# return the resulting id
+            r_id = uid['value']
+            new_id = r_id + 1
+            #unfortunately atomic_add does not yet return the new value, therefore 
+            #this is to prevent race condition 
+            while(not self.hyperdex_client.cond_put(ID, self.graph_id, {'value' : r_id} ,{ 'value' : new_id})):
+                r_id = self.hyperdex_client.get(ID, self.graph_id)['value']
+                new_id = r_id + 1
+            return r_id
+                
     
     def is_vertex_type(self, vertex_type):
         '''

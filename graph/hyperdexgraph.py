@@ -186,6 +186,6 @@ class HyperDexGraph(object):
         else:
             raise TypeError('Illegal argument exception.')
         for vertex in vertices:
-            result.append(Vertex(vertex['id'], vertex_type, self._storage))
+            result.append(Vertex(vertex['graph_uid'], vertex_type, self._storage))
         return result 
     

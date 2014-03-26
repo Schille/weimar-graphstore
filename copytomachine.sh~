@@ -1,0 +1,13 @@
+#!/bin/bash
+
+scp -r graph hyperdex_server:/hyperdex/weimar/
+scp -r graphstore hyperdex_server:/hyperdex/weimar/
+#scp -r serialization hyperdex_server:/hyperdex/weimar/
+#scp -r tests hyperdex_server:/hyperdex/weimar/
+scp -r client hyperdex_server:/hyperdex/weimar
+scp -r remote hyperdex_server:/hyperdex/weimar
+#scp -r pydevsrc hyperdex_server:/hyperdex/weimar/
+scp weimar.py hyperdex_server:/hyperdex/weimar/
+scp test.py hyperdex_server:/hyperdex/weimar/
+scp test_insert.py hyperdex_server:/hyperdex/weimar/
+#ssh root@192.168.1.5 "cd /root/Weimar; python -i hyperdexgraph.py" 
