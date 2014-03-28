@@ -37,7 +37,7 @@ class WeimarGraphServer(mp.Process):
         self.daemon.requestLoop()
     
     def shutdown(self):
-        self._o_nssvr.close()
+        self._o_nssvr.shutdown()
         self.daemon.close()
         time.sleep(2)
         self.terminate()

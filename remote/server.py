@@ -32,7 +32,7 @@ def start_server(hyperdex_ip, hyperdex_port):
         graph_server.shutdown()
         graph_server.join(10)
         weimar_cluster.shutdown()
-        weimar_cluster.shutdown(10)
+        weimar_cluster.join(10)
         print('Shutting down Weimar...Done')
         sys.exit()
     
