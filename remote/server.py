@@ -12,33 +12,35 @@ import signal
 import sys
 
 import multiprocessing as mp
-from remote.serverprocesses import ClusterServer
+from remote.serverprocesses import ClusterManager
 from remote.weimargraphserver import WeimarGraphServer
     
 
     
 def start_server(hyperdex_ip, hyperdex_port):
-    print('Starting Weimar...')
-    #this is the pool of workers available to this instance of Weimar
-    worker_pool = mp.Manager().Queue()
+    print('[Info] Starting Weimar...')
     #start the internal coordinator in order to dispatch workload
-    weimar_cluster = ClusterServer(worker_pool, hyperdex_ip, hyperdex_port)
+    print('=== Weimar Cluster Manager ===')
+    weimar_cluster = ClusterManager(hyperdex_ip, hyperdex_port)
+    #this is the pool of workers available to this instance of Weimar
+    worker_pool = weimar_cluster.get_worker_pool()
     #a graph server, for external clients
+    print('=== Weimar Graph Server ===')
     graph_server = WeimarGraphServer(worker_pool)
-    print('Starting Weimar...Done')
+    print('[Info] Starting Weimar...Successful')
     
     def signal_handler(signum, frame):
-        print('\nShutting down Weimar...')
+        print('\n[Info] Shutting down Weimar...')
         graph_server.shutdown()
         graph_server.join(10)
         weimar_cluster.shutdown()
         weimar_cluster.join(10)
-        print('Shutting down Weimar...Done')
-        sys.exit()
+        print('[Info] Shutting down Weimar...Successful')
+        sys.exit(0)
     
     signal.signal(signal.SIGINT, signal_handler)
-    while(True):
-        time.sleep(5)
+    weimar_cluster.join()
+        
                  
         
 

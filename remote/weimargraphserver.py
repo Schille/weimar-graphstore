@@ -9,7 +9,7 @@ class WeimarGraphServer(mp.Process):
         signal.signal(signal.SIGINT, signal.SIG_IGN)
         super(WeimarGraphServer, self).__init__(name='weimar-graphserver')
         self.worker_pool = worker_pool
-        
+        self._running = mp.Value('i', 1)
         #start outside name server
         self._o_nssvr = NameServer(config.WEIMAR_ADDRESS_OUTSIDE, config.WEIMAR_PORT_OUTSIDE)
         
@@ -34,11 +34,14 @@ class WeimarGraphServer(mp.Process):
         self.start()
     
     def run(self):
-        self.daemon.requestLoop()
+        Pyro4.config.COMMTIMEOUT=3.5
+        self.daemon.requestLoop(loopCondition=lambda:self._running.value)
+        #shutdown was issued
+        self.daemon.close()
     
     def shutdown(self):
+        self._running.value = 0
         self._o_nssvr.shutdown()
-        self.daemon.close()
         time.sleep(2)
         self.terminate()
         

@@ -1,12 +1,18 @@
 
-import Pyro4, config
+import Pyro4, config, time
+from Pyro4.naming import NamingError
 
 class WorkerProcess(object):
     
     def __init__(self,name):
         self.name = name
         self.ns = Pyro4.naming.locateNS(host=config.WEIMAR_ADDRESS_INSIDE, port=config.WEIMAR_PORT_INSIDE)
-        self.proxy_uri = self.ns.lookup('weimar.worker.{}'.format(name))
+        for i in xrange(0, 5):
+            try:
+                self.proxy_uri = self.ns.lookup('weimar.worker.{}'.format(name))
+                break
+            except NamingError, e:
+                time.sleep(1)
         self.pyro = None
 
     
@@ -15,6 +21,11 @@ class WorkerProcess(object):
             self.pyro = Pyro4.Proxy(self.proxy_uri)
         return self.pyro.say_hello()
 
+    def shutdown(self, code):
+        if(self.pyro is None):
+            self.pyro = Pyro4.Proxy(self.proxy_uri)
+        return self.pyro.shutdown(code)
+        
 
     def get_vertex_type(self, graph_name, vertex_type):
         if(self.pyro is None):

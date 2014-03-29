@@ -41,8 +41,15 @@ def start_worker(num_threads):
         for process in worker_p:
             if not process.is_alive():
                 print('Worker process {} stopped working unexpectedly.'.format(process.name))
-                registry.unregister(process.name)            
+                try:
+                    registry.unregister(process.name)
+                except Pyro4.errors.ConnectionClosedError:
+                    print('[Warn] Weimar server is no longer available.')   
+                worker_p.remove(process)         
         time.sleep(2)
+        if(len(worker_p) == 0):
+            break
+        
     
     
 
@@ -55,8 +62,13 @@ class WorkerProcess(mp.Process):
         registry_uri = self.ns.lookup('weimar.worker.registry')
         self.registry = Pyro4.Proxy(registry_uri)
         self.workername = self.registry.register()
-        #create process
         super(WorkerProcess, self).__init__(name=self.workername)
+        self._running = mp.Value('i', 1)
+        self.start()
+    
+    def run(self):
+        Pyro4.config.COMMTIMEOUT=3.5
+        #create process
         my_ip = Pyro4.socketutil.getIpAddress(None, workaround127=True)
         self.daemon = Pyro4.core.Daemon(my_ip)
         hyperdex_uri = self.ns.lookup('hyperdex.properties')
@@ -67,23 +79,22 @@ class WorkerProcess(mp.Process):
         hyperdex_port = hyperdex.get_port()
         
         #create worker object for Pyro
-        self.worker = Worker(self.workername,hyperdex_ip, hyperdex_port)
+        self.worker = Worker(self.workername,hyperdex_ip, hyperdex_port, self)
         worker_uri = self.daemon.register(self.worker)
         #register object at the weimar server
+        print(self.workername)
+        print(worker_uri)
         self.ns.register('weimar.worker.{}'.format(self.workername), worker_uri)
-        self.start()
-    
-    def run(self):
-        self.daemon.requestLoop()
-        #if this process is supposed to shutdown
+        
+        self.daemon.requestLoop(loopCondition=lambda:self._running.value)
+        #shutdown issued
+        self.daemon.close()
+        self.registry.unregister(self.workername)
 
         
     def shutdown(self):
-        self._running = False
-        self.registry.unregister(self.workername)
-        
-        print('Shutting down: ' + self.name)
-        self.daemon.close()
+        self._running.value = 0
+        print('[Info] Shutting down: ' + self.name)
         self.terminate()
         
 
@@ -94,7 +105,7 @@ class Worker(object):
     '''
 
 
-    def __init__(self, worker_name, hyperdex_ip, hyperdex_port):
+    def __init__(self, worker_name, hyperdex_ip, hyperdex_port, process):
         '''
         Constructor
         '''
@@ -102,10 +113,17 @@ class Worker(object):
         self.graphs = {}
         self.hyperdex_ip = hyperdex_ip
         self.hyperdex_port = hyperdex_port
+        self._process = process
     
     def say_hello(self):
         a = random.randint(0,100)
         return 'Hello from {} say {}'.format(self.name, a)
+    
+    def shutdown(self, code):
+        #todo handle server code
+        print('[Warn] Worker {} is requested to shut down. Server code: {}'.format(self.name, code))
+        self._process.shutdown()
+        
 
     def get_vertex_type(self, graph_name, vertex_type):
         if(self.graphs.has_key(graph_name)):

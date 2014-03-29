@@ -9,21 +9,23 @@ class NameServer(mp.Process):
     
     def __init__(self, ns_ip, ns_port):
         signal.signal(signal.SIGINT, signal.SIG_IGN)
-        super(NameServer, self).__init__(name='weimar-nameserver')
+        super(NameServer, self).__init__(name='weimar-nameserver-{}'.format(ns_port))
         self.address = ns_ip
         self.port = ns_port
+        self._running = mp.Value('i', 1)
         self.start()
         time.sleep(2)
         
     def run(self):
-        print('[Info] Starting name server')
-        self.uri, self.nsdaemon, self.bc = Pyro4.naming.startNSloop\
+        print('[Info] Starting: Name server on {}:{}'.format(self.address, self.port))
+        self.uri, self.nsdaemon, self.bc = Pyro4.naming.startNS\
         (host=self.address, port=self.port, enableBroadcast=False)
-
-        
+        self.nsdaemon.requestLoop(loopCondition=lambda:self._running.value)
+        #shutdown was issued
+        self.nsdaemon.close()
     
     def shutdown(self):
-        #self.nsdaemon.close()
+        self._running.value = 0
         time.sleep(1)
         self.terminate()
 
@@ -34,6 +36,7 @@ class PropertyServer(mp.Process):
         super(PropertyServer, self).__init__(name='weimar-propertyprovider')
         self.hyperdex_ip = hyperdex_ip
         self.hyperdex_port = hyperdex_port
+        self._running = mp.Value('i', 1)
         self.start()
         time.sleep(1)
 
@@ -48,11 +51,12 @@ class PropertyServer(mp.Process):
         self.ns.register('hyperdex.properties', properties_uri)
         self.ns.register('weimar.worker.registry', registry_uri)
         print('[Info] Starting: weimar-propertyprovider')
-        self.daemon.requestLoop()
+        self.daemon.requestLoop(loopCondition=lambda:self._running.value)
+        #shutdown was issued
+        self.nsdaemon.close()
 
     def shutdown(self):
-        #self.daemon.shutdown()
-        #self.daemon.close()
+        self._running.value = 0
         time.sleep(1)
         self.terminate()
 
@@ -67,22 +71,20 @@ class WorkerRegister(mp.Process):
         registry_uri = self.ns.lookup('weimar.worker.registry')
         self.registry = Pyro4.core.Proxy(registry_uri)
         self.known_worker = []
-        self.online = 0
+        self.online = mp.Value('i', 0)
         self.start()
+        time.sleep(1)
         
     def run(self):
         print('[Info] Starting: weimar-workerregister')
         while True:
-            if(self.online != self.registry.get_worker_count()):
-                online = self.registry.get_worker_count()
-                print('Workers online: {}'.format(online))
+            time.sleep(5)
+            if(self.online.value != self.registry.get_worker_count()):
+                self.online.value = self.registry.get_worker_count()
+                print('[Info] Workers online: {}'.format(self.online.value))
                 all_worker = self.registry.get_worker_names()
-        
-                print(str(all_worker))
-                print(str(self.known_worker))
                 for worker in all_worker:
                     if(worker not in self.known_worker):
-                        print('Adding worker...')
                         #proxy = Pyro4.Proxy(ns.lookup('weimar.worker.{}'.format(worker)))
                         self.worker_p.put(WorkerProcess(worker))
                         #worker_pool.task_done()
@@ -91,7 +93,6 @@ class WorkerRegister(mp.Process):
                 for worker in self.known_worker:
                     if(worker not in all_worker):
                         self.known_worker.remove(worker)
-                        print('Removing worker...')
                         for i in xrange(0, self.worker_p.qsize()):
                             try:
                                 workerp = self.worker_p.get(False)
@@ -99,41 +100,56 @@ class WorkerRegister(mp.Process):
                                 continue
                             if(workerp.name != worker):
                                 self.worker_p.put(workerp)
-        time.sleep(5)
         
     def shutdown(self):
-        #todo
+        #shut down all attached worker processes
+        print('[Info] Shutting down all worker processes...') 
+        for i in xrange(0, self.worker_p.qsize()):
+            try:
+                workerp = self.worker_p.get(False)
+                workerp.shutdown(1000)
+                #grant some time to send shutdown signal properly
+                time.sleep(2)
+            except:
+                time.sleep(2)
+        time.sleep(5)
         self.terminate()
 
-class ClusterServer(mp.Process):
+class ClusterManager(mp.Process):
     
-    def __init__(self, worker_pool,  hyperdex_ip, hyperdex_port):
+    def __init__(self, hyperdex_ip, hyperdex_port):
         signal.signal(signal.SIGINT, signal.SIG_IGN)
-        super(ClusterServer, self).__init__(name='weimar-clusterserver')
+        super(ClusterManager, self).__init__(name='weimar-clustermanager')
+        #worker pool
+        self.worker_pool = mp.Manager().Queue()
+        
         #start the cluster name server
         self._i_nssvr = NameServer(config.WEIMAR_ADDRESS_INSIDE, config.WEIMAR_PORT_INSIDE)
 
         #start the properties provider
         self.prop_server = PropertyServer(hyperdex_ip, hyperdex_port)
         #create a queue for all worker process attached to this server instance
-        self.worker_pool = worker_pool
         self.workp_register = WorkerRegister(self.worker_pool)
         self.start()
     
     def run(self):
+        #TODO collect data/statistics
         while(True):
-            time.sleep(5)
+            time.sleep(10)
     
     
     def shutdown(self):
-        print('Shutting down ClusterServer...')
-        self.prop_server.shutdown()
+        print('[Info] Shutting down ClusterManager...')
         self.workp_register.shutdown()
+        time.sleep(1)
+        self.prop_server.shutdown()
+        time.sleep(1)
         self._i_nssvr.shutdown()
-        print('Shutting down ClusterServer...Done! ')
+        print('[Info] Shutting down ClusterManager...Done ')
         self.terminate()
 
-        
+    def get_worker_pool(self):
+        return self.worker_pool
         
         
        
