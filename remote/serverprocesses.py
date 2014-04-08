@@ -68,8 +68,6 @@ class WorkerRegister(mp.Process):
         self.worker_p = worker_p
         self.ns = Pyro4.naming.locateNS(host=config.WEIMAR_ADDRESS_INSIDE, port=config.WEIMAR_PORT_INSIDE)
         self.ns.ping()
-        registry_uri = self.ns.lookup('weimar.worker.registry')
-        self.registry = Pyro4.core.Proxy(registry_uri)
         self.known_worker = []
         self.online = mp.Value('i', 0)
         self.start()
@@ -77,6 +75,8 @@ class WorkerRegister(mp.Process):
         
     def run(self):
         print('[Info] Starting: weimar-workerregister')
+        registry_uri = self.ns.lookup('weimar.worker.registry')
+        self.registry = Pyro4.core.Proxy(registry_uri)
         while True:
             time.sleep(5)
             if(self.online.value != self.registry.get_worker_count()):
@@ -103,16 +103,17 @@ class WorkerRegister(mp.Process):
         
     def shutdown(self):
         #shut down all attached worker processes
-        print('[Info] Shutting down all worker processes...') 
-        for i in xrange(0, self.worker_p.qsize()):
-            try:
-                workerp = self.worker_p.get(False)
-                workerp.shutdown(1000)
-                #grant some time to send shutdown signal properly
-                time.sleep(2)
-            except:
-                time.sleep(2)
-        time.sleep(5)
+        if(self.worker_p.qsize() > 0):
+            print('[Info] Shutting down all worker processes...') 
+            for i in xrange(0, self.worker_p.qsize()):
+                try:
+                    workerp = self.worker_p.get(False)
+                    workerp.shutdown(1000)
+                    #grant some time to send shutdown signal properly
+                    time.sleep(2)
+                except:
+                    time.sleep(2)
+            time.sleep(5)
         self.terminate()
 
 class ClusterManager(mp.Process):

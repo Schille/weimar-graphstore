@@ -20,12 +20,12 @@ from remote.weimargraphserver import WeimarGraphServer
 def start_server(hyperdex_ip, hyperdex_port):
     print('[Info] Starting Weimar...')
     #start the internal coordinator in order to dispatch workload
-    print('=== Weimar Cluster Manager ===')
+    print('=== Weimar ClusterManager ===')
     weimar_cluster = ClusterManager(hyperdex_ip, hyperdex_port)
     #this is the pool of workers available to this instance of Weimar
     worker_pool = weimar_cluster.get_worker_pool()
     #a graph server, for external clients
-    print('=== Weimar Graph Server ===')
+    print('=== Weimar GraphServer ===')
     graph_server = WeimarGraphServer(worker_pool)
     print('[Info] Starting Weimar...Successful')
     

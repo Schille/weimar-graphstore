@@ -19,7 +19,6 @@ class WeimarGraphServer(mp.Process):
         self.type_svr = RemoteElementType(self.worker_pool)
         self.element_svr = RemoteGraphElement(self.worker_pool)
     
-    
         self.daemon = Pyro4.core.Daemon(host=config.WEIMAR_ADDRESS_OUTSIDE)
         self.server_uri = self.daemon.register(self.server)
         self.type_svr_uri = self.daemon.register(self.type_svr)
@@ -32,8 +31,11 @@ class WeimarGraphServer(mp.Process):
         self.ns.register('weimar.server.element', self.element_svr_uri)
         
         self.start()
+        time.sleep(1)
     
     def run(self):
+        print('[Info] Starting: weimar-graphserver')
+        self.daemon = Pyro4.core.Daemon(host=config.WEIMAR_ADDRESS_OUTSIDE)
         Pyro4.config.COMMTIMEOUT=3.5
         self.daemon.requestLoop(loopCondition=lambda:self._running.value)
         #shutdown was issued

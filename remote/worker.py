@@ -21,6 +21,7 @@ def start_worker(num_threads):
     
     for i in xrange(0, num_threads):
         worker_p.append(WorkerProcess())
+        time.sleep(1)
         
     
     def signal_handler(signum, frame):
@@ -37,6 +38,7 @@ def start_worker(num_threads):
     registry = Pyro4.Proxy(registry_uri)
     
     print('Started {} work_p processes'.format(len(worker_p)))
+    Pyro4.config.COMMTIMEOUT=3.5
     while(True):
         for process in worker_p:
             if not process.is_alive():
@@ -44,7 +46,9 @@ def start_worker(num_threads):
                 try:
                     registry.unregister(process.name)
                 except Pyro4.errors.ConnectionClosedError:
-                    print('[Warn] Weimar server is no longer available.')   
+                    print('[Warn] Weimar server is no longer available.')
+                except Exception, ex:
+                    print(ex)
                 worker_p.remove(process)         
         time.sleep(2)
         if(len(worker_p) == 0):
@@ -67,7 +71,7 @@ class WorkerProcess(mp.Process):
         self.start()
     
     def run(self):
-        Pyro4.config.COMMTIMEOUT=3.5
+        Pyro4.config.COMMTIMEOUT=5.5
         #create process
         my_ip = Pyro4.socketutil.getIpAddress(None, workaround127=True)
         self.daemon = Pyro4.core.Daemon(my_ip)
@@ -83,7 +87,6 @@ class WorkerProcess(mp.Process):
         worker_uri = self.daemon.register(self.worker)
         #register object at the weimar server
         print(self.workername)
-        print(worker_uri)
         self.ns.register('weimar.worker.{}'.format(self.workername), worker_uri)
         
         self.daemon.requestLoop(loopCondition=lambda:self._running.value)
@@ -95,7 +98,6 @@ class WorkerProcess(mp.Process):
     def shutdown(self):
         self._running.value = 0
         print('[Info] Shutting down: ' + self.name)
-        self.terminate()
         
 
 
@@ -116,13 +118,13 @@ class Worker(object):
         self._process = process
     
     def say_hello(self):
-        a = random.randint(0,100)
-        return 'Hello from {} say {}'.format(self.name, a)
+        return 'Hello from {}'.format(self.name)
     
     def shutdown(self, code):
-        #todo handle server code
         print('[Warn] Worker {} is requested to shut down. Server code: {}'.format(self.name, code))
-        self._process.shutdown()
+        #todo handle server code
+        if(code == 1000):
+            self._process.shutdown()
         
 
     def get_vertex_type(self, graph_name, vertex_type):
