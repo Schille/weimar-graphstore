@@ -39,7 +39,9 @@ def start_server(hyperdex_ip, hyperdex_port):
         sys.exit(0)
     
     signal.signal(signal.SIGINT, signal_handler)
-    weimar_cluster.join()
+    while(True):
+        print('[Debug] Workers free: ' + str(worker_pool.qsize()))
+        time.sleep(2)
         
                  
         

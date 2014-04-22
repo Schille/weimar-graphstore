@@ -89,17 +89,23 @@ class WorkerRegister(mp.Process):
                         self.worker_p.put(WorkerProcess(worker))
                         #worker_pool.task_done()
                         self.known_worker.append(worker)
-            
-                for worker in self.known_worker:
+                
+                
+                def _remove_worker(worker):
                     if(worker not in all_worker):
-                        self.known_worker.remove(worker)
                         for i in xrange(0, self.worker_p.qsize()):
                             try:
                                 workerp = self.worker_p.get(False)
                             except:
-                                continue
+                                pass
                             if(workerp.name != worker):
                                 self.worker_p.put(workerp)
+                            else:
+                                print('[Warn] removing worker: ' + workerp.name)
+                    else:
+                        return worker
+                self.known_worker = filter(_remove_worker, self.known_worker)
+                print('[Debug] Worker queue: ' + str(self.worker_p.qsize()))
         
     def shutdown(self):
         #shut down all attached worker processes

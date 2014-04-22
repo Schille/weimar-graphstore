@@ -27,7 +27,11 @@ def start_worker(num_threads):
     def signal_handler(signum, frame):
         print('\nShutting down Worker...')
         [p.shutdown() for p in worker_p]
-        [p.join() for p in worker_p]
+        time.sleep(5)
+        for process in worker_p:
+            if process.is_alive():
+                process.terminate()
+                registry.unregister(process.name)
         print('\nShutting down Worker...Done')
         sys.exit()
     
@@ -71,7 +75,7 @@ class WorkerProcess(mp.Process):
         self.start()
     
     def run(self):
-        Pyro4.config.COMMTIMEOUT=5.5
+        #Pyro4.config.COMMTIMEOUT=5.5
         #create process
         my_ip = Pyro4.socketutil.getIpAddress(None, workaround127=True)
         self.daemon = Pyro4.core.Daemon(my_ip)
@@ -129,9 +133,8 @@ class Worker(object):
 
     def get_vertex_type(self, graph_name, vertex_type):
         if(self.graphs.has_key(graph_name)):
-            print(graph_name)
             try:
-                return self.graphs[graph_name].get_vertex_type(vertex_type)
+                self.graphs[graph_name].get_vertex_type(vertex_type)
                 return True
             except:
                 return False
@@ -139,7 +142,7 @@ class Worker(object):
             print('Create new graph ' + graph_name)
             self.graphs[graph_name] = HyperDexGraph(self.hyperdex_ip, self.hyperdex_port, graph_name)
             try:
-                return self.graphs[graph_name].get_vertex_type(vertex_type)
+                self.graphs[graph_name].get_vertex_type(vertex_type)
                 return True
             except:
                 return False
@@ -161,9 +164,8 @@ class Worker(object):
                 return False
     
     def create_vertex_type(self, graph_name, type_name, vertex_type_def):
-        print('Create vertex type')
+        print('[Info] Create vertex type: ' + type_name)
         if(self.graphs.has_key(graph_name)):
-            print(graph_name)
             try:
                 self.graphs[graph_name].create_vertex_type(RequestVertexType(type_name, *vertex_type_def))
                 return True
@@ -172,7 +174,6 @@ class Worker(object):
                 return False  
         else:
             print('Create new graph {} on HyperDex at {}:{}'.format(graph_name, self.hyperdex_ip, self.hyperdex_port))
-            print(type_name)
             self.graphs[graph_name] = HyperDexGraph(self.hyperdex_ip, self.hyperdex_port, graph_name)
             try:
                 self.graphs[graph_name].create_vertex_type(RequestVertexType(type_name, *vertex_type_def))
@@ -184,6 +185,7 @@ class Worker(object):
         
             
     def create_edge_type(self, graph_name, type_name, edge_type_def):
+        print('[Info] Create edge type: ' + type_name)
         if(self.graphs.has_key(graph_name)):
             print(graph_name)
             try:
@@ -202,7 +204,6 @@ class Worker(object):
 
     def insert_vertex(self, graph_name, vertex_type, attributes):
         if(self.graphs.has_key(graph_name)):
-            print('Insert Vertex')
             return self.graphs[graph_name].insert_vertex(\
                 RequestVertex(VertexType(self.graphs[graph_name]._storage , vertex_type.split(':', 1)[1]),attributes))._uid
         else:
@@ -290,8 +291,8 @@ class Worker(object):
 
     def remove_type(self, graph_name, type_name):
         t = type_name.split(':', 1)
+        print('[Info] Removing: ' + t[1])
         if(self.graphs.has_key(graph_name)):
-            print('Removing: ' + type_name)
             if(t[0] == 'vertex'):
                 self.graphs[graph_name].get_vertex_type(t[1]).remove()
             elif(t[0] == 'edge'):

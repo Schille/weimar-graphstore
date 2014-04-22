@@ -14,7 +14,12 @@ class WeimarGraphServer(mp.Process):
         self._o_nssvr = NameServer(config.WEIMAR_ADDRESS_OUTSIDE, config.WEIMAR_PORT_OUTSIDE)
         
         
-        #start a new server instance, pass handle on the worker pool
+        self.start()
+        time.sleep(1)
+    
+    def run(self):
+        print('[Info] Starting: weimar-graphserver')
+            #start a new server instance, pass handle on the worker pool
         self.server =  Server(self.worker_pool)
         self.type_svr = RemoteElementType(self.worker_pool)
         self.element_svr = RemoteGraphElement(self.worker_pool)
@@ -29,14 +34,7 @@ class WeimarGraphServer(mp.Process):
         self.ns.register('weimar.server.api', self.server_uri)
         self.ns.register('weimar.server.type', self.type_svr_uri)
         self.ns.register('weimar.server.element', self.element_svr_uri)
-        
-        self.start()
-        time.sleep(1)
-    
-    def run(self):
-        print('[Info] Starting: weimar-graphserver')
-        self.daemon = Pyro4.core.Daemon(host=config.WEIMAR_ADDRESS_OUTSIDE)
-        Pyro4.config.COMMTIMEOUT=3.5
+        #Pyro4.config.COMMTIMEOUT=3.5
         self.daemon.requestLoop(loopCondition=lambda:self._running.value)
         #shutdown was issued
         self.daemon.close()
@@ -133,6 +131,7 @@ class RemoteElementType(object):
 
     def remove(self, graph_name, type_name):
         worker = self._worker_available.get(True)
+        print('[Debug] remove')
         result = worker.remove_type(graph_name, type_name)
         self._worker_available.put(worker)
         return result

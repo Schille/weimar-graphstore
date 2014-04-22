@@ -14,7 +14,7 @@ import time
 def req(people):
     Pyro4.config.SERIALIZER = 'pickle'
     Pyro4.config.HMAC_KEY='weimar-graphstore'
-    g=HyperDexGraph(remote.config.NS_ADDRESS, remote.config.NS_PORT, 'default')
+    g=HyperDexGraph(remote.config.WEIMAR_ADDRESS_OUTSIDE, remote.config.WEIMAR_PORT_OUTSIDE, 'default')
     while(not people.empty()):
         try:
             p = people.get(False)
@@ -42,10 +42,11 @@ for i in xrange(0, V_COUNT):
 print('Creating People...Done')
 
 
-
-g=HyperDexGraph(remote.config.NS_ADDRESS, remote.config.NS_PORT, 'default')
+print('Creating VertexType User')
+g=HyperDexGraph(remote.config.WEIMAR_ADDRESS_OUTSIDE, remote.config.WEIMAR_PORT_OUTSIDE, 'default')
 user_type=RequestVertexType('User', ('string', 'first'), ('string', 'last'), ('int', 'age'))
 user=g.create_vertex_type(user_type)
+print('Creating VertexType User...Done')
 
 
 
@@ -65,14 +66,12 @@ try:
     end = time.time()
     k.terminate()
     print('== Time consumed: {}s for {} vertices =='.format(end - start, user.count()))
-    print('Average insert rate is {}'.format((end - start) / user.count()))
+    print('Average insert rate is {}'.format(float(user.count()) / float(end - start)))
     user.remove()
     
 except Exception, e:
     print(e)
     user.remove()
     
-'''
 
-'''
 sys.exit(0)
